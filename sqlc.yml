@@ -1,0 +1,25 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "backend/db/query.sql"
+    schema: "backend/db/migrations"
+    gen:
+      go:
+        package: "db"
+        sql_package: "pgx/v5"
+        out: "backend/db"
+        overrides:
+          - column: "booking.id"
+            go_type:
+              type: "ID"
+          - db_type: "timestamptz"
+            go_type:
+              type: "time.Time"
+          - db_type: "timestamptz"
+            nullable: true
+            go_type:
+              type: "*time.Time"
+overrides:
+  go:
+    rename:
+      booking: BookingModel

@@ -1,0 +1,32 @@
+services:
+  db:
+    environment:
+      - POSTGRES_PASSWORD=password
+
+  adminer:
+    image: adminer:5.4.1-standalone
+    restart: always
+    networks:
+      - db
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.adminer.entrypoints=web"
+      - "traefik.http.routers.adminer.rule=Host(`db.schedulr.localhost`)"
+
+  lb:
+    ports:
+      - ${LB_PORT:-3100}:80
+      - ${LB_DASHBOARD_PORT:-3180}:8080
+
+  backend:
+    labels:
+      - "traefik.http.middlewares.grpcweb.grpcweb.allowOrigins=*"
+    environment:
+      - DATABASE_URL=postgres://postgres:password@db:5432/postgres
+
+  frontend:
+    volumes:
+      - ./frontend:/build/frontend
+    environment:
+      - VITE_GRPC_URL=http://rpc.schedulr.localhost:${LB_PORT:-3100}

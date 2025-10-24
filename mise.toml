@@ -1,0 +1,26 @@
+[tools]
+bun = "1.3.0"
+go = "1.25.3"
+"go:github.com/felangga/chiko/cmd/chiko" = "0.1.1"
+"go:github.com/sqlc-dev/sqlc/cmd/sqlc" = "1.30.0"
+protoc = "33.0"
+protoc-gen-go-grpc = "1.5.1"
+protoc-gen-go = "1.36.10"
+"npm:@protobuf-ts/plugin" = "2.11.1"
+
+[settings]
+experimental = true
+
+[settings.npm]
+bun = true
+
+[tasks.protoc]
+dir = "{{config_root}}"
+run = [
+  "protoc --go_opt=default_api_level=API_OPAQUE --go-grpc_out=backend --go_out=backend proto/schedulr.proto",
+  "protoc --ts_out=frontend/src/lib proto/schedulr.proto",
+]
+
+[tasks.sqlc-gen]
+dir = "{{config_root}}"
+run = "sqlc generate"

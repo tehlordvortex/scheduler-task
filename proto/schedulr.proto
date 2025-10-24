@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package schedulr;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "./proto";
+
+service AppointmentService {
+  rpc Schedule(ScheduleAppointmentRequest) returns (Appointment);
+  rpc List(ListAppointmentsRequest) returns (Appointments);
+  rpc Get(GetAppointmentRequest) returns (Appointment);
+  rpc Delete(DeleteAppointmentRequest) returns (google.protobuf.Empty);
+}
+
+message Appointments {
+  repeated Appointment appointments = 1;
+  optional string nextCursor = 2;
+}
+
+message Appointment {
+  string bookingId = 1;
+  string title = 2;
+  google.protobuf.Timestamp scheduledFor = 3;
+  google.protobuf.Duration duration = 4;
+  google.protobuf.Timestamp scheduledAt = 5;
+}
+
+message ScheduleAppointmentRequest {
+  string title = 1;
+  google.protobuf.Timestamp scheduledFor = 2;
+  google.protobuf.Duration duration = 3;
+}
+
+message ListAppointmentsRequest {
+  optional string cursor = 1;
+  int32 limit = 2;
+  optional google.protobuf.Timestamp before = 3;
+  optional google.protobuf.Timestamp after = 4;
+}
+
+message GetAppointmentRequest {
+  string bookingId = 1;
+}
+
+message DeleteAppointmentRequest {
+  string bookingId = 1;
+}
+
+service EventService {
+  rpc Subscribe(SubscribeRequest) returns (stream Event);
+}
+
+message SubscribeRequest {}
+
+message Event {
+  oneof data {
+    BookingChangedEvent bookingChanged = 1;
+  }
+}
+
+message BookingChangedEvent {}

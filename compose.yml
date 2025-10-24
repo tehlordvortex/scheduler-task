@@ -1,0 +1,72 @@
+services:
+  db:
+    image: postgres:18.0-alpine3.22
+    shm_size: 128mb
+    volumes:
+      - postgresdata:/var/lib/postgresql
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - db
+
+  lb:
+    image: traefik:v3.5.3
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=schedulr-proxy"
+      - "--entrypoints.web.address=:80"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - ${LB_PORT:-80}:80
+    networks:
+      - proxy
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend.Dockerfile
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.entrypoints=web"
+      - "traefik.http.routers.backend.rule=Host(`rpc.schedulr.localhost`)"
+      - "traefik.http.routers.backend.middlewares=grpcweb@docker"
+      - "traefik.http.services.backend.loadbalancer.server.scheme=h2c"
+    networks:
+      - proxy
+      - db
+    depends_on:
+      db:
+        condition: service_healthy
+    develop:
+      watch:
+        - path: ./backend
+          action: rebuild
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend.Dockerfile
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.entrypoints=web"
+      - "traefik.http.routers.frontend.rule=Host(`schedulr.localhost`)"
+    networks:
+      - proxy
+
+volumes:
+  postgresdata:
+
+networks:
+  proxy:
+    name: schedulr-proxy
+  db:
